@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f19">
+  <title>コメント音声提示プレイヤー</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 起動オーバーレイ（ブラウザの自動再生制限を解除するため、最初に1回タップが必要） -->
+  <div id="start-overlay" class="overlay">
+    <div class="overlay-card">
+      <h1>コメント音声提示プレイヤー</h1>
+      <p class="sub">視覚障害者向けコメント・コンテンツ音声提示インタフェース<br>モード6 / モード7</p>
+      <div class="load-status" id="load-status">データを読み込み中…</div>
+      <button id="btn-start" class="btn primary big" disabled>開始</button>
+    </div>
+  </div>
+
+  <main class="app">
+    <header class="top">
+      <h1>コメント音声提示プレイヤー</h1>
+      <span id="status-chip" class="chip">準備中</span>
+    </header>
+
+    <!-- 動画 -->
+    <section class="video-wrap">
+      <div class="video-ratio"><div id="yt-player"></div></div>
+      <div id="video-error" class="video-error" hidden></div>
+    </section>
+
+    <!-- 再生コントロール -->
+    <section class="row controls">
+      <button id="btn-play-pause" class="btn primary" aria-label="再生・一時停止">▶ 再生</button>
+      <button id="btn-restart" class="btn secondary" aria-label="最初からやり直す">⟲ 最初から</button>
+      <button id="btn-tts-test" class="btn secondary" aria-label="音声テスト">🔊 テスト</button>
+    </section>
+
+    <!-- モード選択 -->
+    <section class="mode-selector" role="tablist" aria-label="モード選択">
+      <button class="mode-btn active" data-mode="mode6" role="tab" aria-selected="true">
+        <span class="mode-num">モード6</span>
+        <span class="mode-title">タップで過去のAIコメント</span>
+        <span class="mode-desc">触っている間、動画を止めて「現在位置より前で最も近い未読コメント」を読み上げ。離すと再開。</span>
+      </button>
+      <button class="mode-btn" data-mode="mode7" role="tab" aria-selected="false">
+        <span class="mode-num">モード7</span>
+        <span class="mode-title">AI関連・停止あり</span>
+        <span class="mode-desc">関連するタイミングで自動的に動画を止めてコメントを読み上げ。終わると再開。</span>
+      </button>
+    </section>
+
+    <!-- タッチエリア -->
+    <section class="touch-section">
+      <div id="touch-area" class="touch-target" role="button" tabindex="0" aria-label="タッチエリア">
+        <div id="touch-label" class="touch-label">ここを押し続ける</div>
+        <div id="touch-sub" class="touch-sub">押している間、動画が止まってコメントを読み上げます</div>
+      </div>
+    </section>
+
+    <!-- 読み上げ中コメント -->
+    <section class="card current-comment">
+      <h2>現在読み上げ中のコメント</h2>
+      <div id="current-comment-text" class="comment-text">（読み上げを開始すると表示されます）</div>
+      <div id="current-comment-author" class="comment-author"></div>
+    </section>
+
+    <!-- 設定 -->
+    <section class="card settings">
+      <h2>設定</h2>
+
+      <div class="setting">
+        <label for="tts-volume">🔊 TTS音量</label>
+        <div class="stepper">
+          <button class="step-btn" data-target="tts-volume" data-delta="-0.05" aria-label="音量を下げる">−</button>
+          <input type="range" id="tts-volume" min="0" max="1" step="0.05" value="1">
+          <button class="step-btn" data-target="tts-volume" data-delta="0.05" aria-label="音量を上げる">＋</button>
+          <span id="tts-volume-value" class="val">100%</span>
+        </div>
+      </div>
+
+      <div class="setting">
+        <label for="tts-rate">⚡ TTS速度</label>
+        <div class="stepper">
+          <button class="step-btn" data-target="tts-rate" data-delta="-0.1" aria-label="速度を下げる">−</button>
+          <input type="range" id="tts-rate" min="0.5" max="5" step="0.1" value="1">
+          <button class="step-btn" data-target="tts-rate" data-delta="0.1" aria-label="速度を上げる">＋</button>
+          <span id="tts-rate-value" class="val">1.0x</span>
+        </div>
+      </div>
+
+      <div class="setting">
+        <label for="mode6-max">⏱️ モード6 読上時間上限</label>
+        <div class="stepper">
+          <button class="step-btn" data-target="mode6-max" data-delta="-1" aria-label="減らす">−</button>
+          <input type="range" id="mode6-max" min="1" max="30" step="1" value="8">
+          <button class="step-btn" data-target="mode6-max" data-delta="1" aria-label="増やす">＋</button>
+          <span id="mode6-max-value" class="val">8秒</span>
+        </div>
+      </div>
+
+      <div class="setting">
+        <label for="mode7-max">⏱️ モード7 読上時間上限</label>
+        <div class="stepper">
+          <button class="step-btn" data-target="mode7-max" data-delta="-1" aria-label="減らす">−</button>
+          <input type="range" id="mode7-max" min="1" max="30" step="1" value="8">
+          <button class="step-btn" data-target="mode7-max" data-delta="1" aria-label="増やす">＋</button>
+          <span id="mode7-max-value" class="val">8秒</span>
+        </div>
+      </div>
+
+      <div class="setting">
+        <label for="mode7-cool">❄️ モード7 クールタイム</label>
+        <div class="stepper">
+          <button class="step-btn" data-target="mode7-cool" data-delta="-1" aria-label="減らす">−</button>
+          <input type="range" id="mode7-cool" min="0" max="60" step="1" value="5">
+          <button class="step-btn" data-target="mode7-cool" data-delta="1" aria-label="増やす">＋</button>
+          <span id="mode7-cool-value" class="val">5秒</span>
+        </div>
+      </div>
+
+      <p class="note">読上時間上限：予測読み上げ時間（文字数×0.15秒＋1.5秒）がこの値を超えるコメントはスキップします。<br>
+        クールタイム：モード7で、直前の読み上げ開始から動画時間でこの秒数が経つまで次の読み上げを行いません。</p>
+      <button id="btn-reset-settings" class="btn secondary small">設定を初期値に戻す</button>
+    </section>
+
+    <details class="card log-card">
+      <summary>動作ログ</summary>
+      <pre id="log" class="log"></pre>
+    </details>
+
+    <footer>動画: wK-rbvTOgZk ／ コメント <span id="comment-count">-</span> 件 ／ AI紐付け <span id="schedule-count">-</span> 件</footer>
+  </main>
+
+  <script src="js/tts.js"></script>
+  <script src="js/youtube-player.js"></script>
+  <script src="js/comment-engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

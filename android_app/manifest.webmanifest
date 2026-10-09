@@ -1,0 +1,16 @@
+{
+  "name": "コメント音声提示プレイヤー",
+  "short_name": "コメント音声",
+  "description": "視覚障害者向けコメント・コンテンツ音声提示インタフェース（モード6/7）",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0f19",
+  "theme_color": "#0b0f19",
+  "lang": "ja",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
